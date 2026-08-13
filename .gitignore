@@ -1,0 +1,84 @@
+# ---- Secrets & local configuration -----------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+secrets.json
+service-account*.json
+
+# ---- Databases --------------------------------------------------------
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-shm
+*.db-wal
+
+# ---- Python -----------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+env/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+nosetests.xml
+coverage.xml
+*.cover
+*.hypothesis/
+
+# ---- Node / frontend --------------------------------------------------
+node_modules/
+halal-crypto-ui/dist/
+halal-crypto-ui/dist-ssr/
+dist/
+dist-ssr/
+.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm/
+.pnp.*
+.yarn/
+
+# ---- Editors & OS -----------------------------------------------------
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ---- Runtime artifacts ------------------------------------------------
+uploads/
+tmp/
+temp/
+logs/
+*.log
+
+# ---- Generated audit PDFs (private user data; never commit) -----------
+report_storage/
+
+# ---- Misc build / packaging artifacts ---------------------------------
+*.spec

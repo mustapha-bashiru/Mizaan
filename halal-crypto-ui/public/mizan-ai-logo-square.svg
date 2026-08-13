@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Mizaan">
+  <title>Mizaan</title>
+  <!--
+    Square/stacked mark for avatars, app icons and PDF page headers.
+
+    Matches src/components/MizanAILogo.jsx exactly: a white balance on a green
+    rounded-square tile with blended sides. The mark used to be drawn in green
+    on a transparent background, which vanished against dark surfaces and gave
+    the brand no consistent silhouette.
+  -->
+  <defs>
+    <linearGradient id="mizanTileSq" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#10B981" />
+      <stop offset="55%" stop-color="#0F766E" />
+      <stop offset="100%" stop-color="#064E3B" />
+    </linearGradient>
+    <linearGradient id="mizanSheenSq" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.22" />
+      <stop offset="60%" stop-color="#FFFFFF" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+
+  <rect width="64" height="64" rx="15" fill="url(#mizanTileSq)" />
+  <rect width="64" height="64" rx="15" fill="url(#mizanSheenSq)" />
+  <rect x="0.75" y="0.75" width="62.5" height="62.5" rx="14.25" fill="none"
+        stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="1.5" />
+
+  <g fill="none" stroke="#FFFFFF" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M15 26H49" />
+    <path d="M32 26V45" />
+    <path d="M23 46H41" />
+    <path d="M10 30q6 8 12 0" />
+    <path d="M42 30q6 8 12 0" />
+  </g>
+
+  <circle cx="32" cy="19" r="4.6" fill="#FBBF24" />
+  <circle cx="32" cy="19" r="1.7" fill="#FFFFFF" opacity="0.95" />
+</svg>

@@ -1,0 +1,42 @@
+# Mizaan backend dependencies (pinned to the versions verified locally)
+
+fastapi==0.139.2
+uvicorn==0.51.0
+sqlalchemy==2.0.51
+pydantic==2.13.4
+email-validator==2.3.0
+python-multipart==0.0.32
+python-dotenv==1.2.2
+
+# Auth
+python-jose==3.5.0
+passlib==1.7.4
+bcrypt==4.3.0
+
+# Document & image parsing
+pypdf==6.14.2
+python-docx==1.2.0
+pillow==12.3.0
+
+# Report rendering (server-side enterprise PDF).
+# The Mizaan mark is drawn with native ReportLab vector calls, so no SVG
+# rasterisation dependency is required.
+reportlab==4.2.5
+
+# Arabic report rendering. ReportLab performs no Arabic glyph shaping and no
+# Unicode bidirectional reordering, so without these two the Arabic PDF builds
+# successfully but is unreadable: letters appear in isolated forms and in
+# reversed order. Required, not optional, for the 'ar' report language.
+arabic-reshaper==3.0.0
+python-bidi==0.4.2
+
+# HTTP / scraping
+requests==2.34.2
+httpx==0.28.1
+beautifulsoup4==4.15.0
+
+# AI engine
+google-genai==2.14.0
+
+# Tests
+pytest==8.3.4
