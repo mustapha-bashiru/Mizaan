@@ -131,13 +131,17 @@ export default function SettingsView({ userEmail, currentTheme, onToggleTheme, o
     }
   };
 
+  const usedToday =
+    analysesRemaining === null || dailyLimit === null
+      ? null
+      : Math.max(0, dailyLimit - analysesRemaining);
+
   const quotaLabel =
     analysesRemaining === null
-
       ? t('loading', 'Loading…')
       : dailyLimit === null
-        ? String(analysesRemaining)
-        : `${analysesRemaining} / ${dailyLimit}`;
+        ? `${analysesRemaining} remaining`
+        : `${usedToday} / ${dailyLimit}`;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 font-sans text-slate-900 dark:text-slate-100 transition-colors duration-200">
@@ -160,7 +164,7 @@ export default function SettingsView({ userEmail, currentTheme, onToggleTheme, o
         <div className="flex items-center gap-3">
           <span className="text-emerald-500 dark:text-emerald-400 text-xl">⚡</span>
           <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
-            {t('audits_remaining', 'Audits remaining today')}: {quotaLabel}
+            {t('audits_used_today', 'Audits used today')}: {quotaLabel}
           </span>
         </div>
         <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">

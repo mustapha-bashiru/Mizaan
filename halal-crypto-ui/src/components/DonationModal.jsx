@@ -45,7 +45,7 @@ export default function DonationModal({ isOpen, onClose, onSuccess, note }) {
 
   const [selectedAmount, setSelectedAmount] = useState(PRESET_AMOUNTS[1]);
   const [customAmount, setCustomAmount] = useState('');
-  const [methodId, setMethodId] = useState(PAYMENT_METHODS[0].id);
+  const [methodId, setMethodId] = useState('usdt');
   const [copied, setCopied] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
@@ -69,7 +69,7 @@ export default function DonationModal({ isOpen, onClose, onSuccess, note }) {
   const resetState = useCallback(() => {
     setSelectedAmount(PRESET_AMOUNTS[1]);
     setCustomAmount('');
-    setMethodId(PAYMENT_METHODS[0].id);
+    setMethodId('usdt');
     setCopied(false);
     setSubmitting(false);
     setFormError('');
@@ -115,6 +115,9 @@ export default function DonationModal({ isOpen, onClose, onSuccess, note }) {
   };
 
   const handleSelectMethod = (nextId) => {
+    if (nextId === 'card') {
+      return;
+    }
     setMethodId(nextId);
     setCopied(false);
     setFormError('');
@@ -310,6 +313,7 @@ export default function DonationModal({ isOpen, onClose, onSuccess, note }) {
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                   {PAYMENT_METHODS.map((item) => {
                     const copy = methodCopy(item);
+                    const isCardComingSoon = item.id === 'card';
                     return (
                       <DonationCard
                         key={item.id}
@@ -318,9 +322,18 @@ export default function DonationModal({ isOpen, onClose, onSuccess, note }) {
                         hint={copy.hint}
                         selected={methodId === item.id}
                         onSelect={handleSelectMethod}
+                        disabled={isCardComingSoon}
+                        comingSoonLabel={t('donation_method_card_coming_soon', 'Coming Soon')}
                       />
                     );
                   })}
+                </div>
+
+                <div className="rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-2 text-[11px] leading-relaxed text-amber-800 dark:border-amber-800 dark:bg-amber-950/35 dark:text-amber-200">
+                  {t(
+                    'donation_card_disabled_notice',
+                    'Card processing is launching soon. Please use the crypto donation methods for now.',
+                  )}
                 </div>
               </fieldset>
 

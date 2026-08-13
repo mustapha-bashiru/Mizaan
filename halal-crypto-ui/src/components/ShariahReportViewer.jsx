@@ -25,7 +25,6 @@ export default function ShariahReportViewer({ report, onReset, readOnly = false 
   
   // Share dropdown & Report references (declared only once)
   const [isShareOpen, setIsShareOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   // { message, webUrl } — a friendly explanation plus a link the user can click
   // themselves when the WhatsApp hand-off did not happen.
@@ -182,14 +181,6 @@ export default function ShariahReportViewer({ report, onReset, readOnly = false 
     }
   };
 
-  const handleCopySummary = async () => {
-    setIsShareOpen(false);
-    const summaryText = `${t('shariah_audit_report', 'Shariah Audit')}: ${report.project_name}\n${t('risk_score', 'Risk Score')}: ${report.overall_shariah_risk_score}/100\n\n${report.executive_summary}`;
-    await navigator.clipboard.writeText(summaryText);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   // Send follow-up question to Scholar AI Chat Assistant Endpoint
   const handleSendQuestion = async (e) => {
     e.preventDefault();
@@ -318,7 +309,7 @@ export default function ShariahReportViewer({ report, onReset, readOnly = false 
 
             {/* Dropdown Menu */}
             {isShareOpen && (
-              <div className="absolute right-0 mt-2 w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl z-50 py-1 text-xs divide-y divide-slate-100 dark:divide-slate-800">
+              <div className="absolute right-0 mt-2 w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl z-50 py-1 text-xs">
                 <div className="py-1">
                   <button
                     onClick={handleDownloadPDF}
@@ -335,14 +326,6 @@ export default function ShariahReportViewer({ report, onReset, readOnly = false 
                     {isSharing
                       ? t('opening_whatsapp', 'Opening WhatsApp...')
                       : t('share_whatsapp', 'Share via WhatsApp')}
-                  </button>
-                </div>
-                <div className="py-1">
-                  <button
-                    onClick={handleCopySummary}
-                    className="w-full text-left px-4 py-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-emerald-600 dark:hover:text-emerald-400 transition flex items-center gap-2 cursor-pointer"
-                  >
-                    <span>📋</span> {copied ? t('copied_to_clipboard', 'Copied to Clipboard!') : t('copy_summary', 'Copy Summary')}
                   </button>
                 </div>
               </div>

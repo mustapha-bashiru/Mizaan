@@ -260,6 +260,25 @@ def _resolve_pdf_path(row: AuditHistory) -> Optional[Path]:
     return candidate
 
 
+def _cached_pdf_is_usable(path: Optional[Path], report: Dict[str, Any]) -> bool:
+    """Returns whether a cached PDF can safely be served as-is.
+
+    Legacy Arabic PDFs could be cached after ReportLab silently substituted a
+    Latin-only font, producing the square/``n`` glyphs seen in old downloads.
+    Do not disturb any other cached report: only an explicitly Arabic report
+    without the bundled Arabic font is rejected and re-rendered.
+    """
+    if not path or not path.exists():
+        return False
+    if normalize_language(report.get("language")) != "ar":
+        return True
+
+    try:
+        return b"IBMPlexSansArabic" in path.read_bytes()
+    except OSError:
+        return False
+
+
 # ---------------------------------------------------------------------------
 # Schemas
 # ---------------------------------------------------------------------------
@@ -441,23 +460,24 @@ def download_pdf(
     """Streams the report PDF, rendering it on demand if it is missing."""
     row = _owned_row(audit_id, current_user, db)
 
+    try:
+        stored = json.loads(row.report_json) if row.report_json else {}
+    except (TypeError, ValueError):
+        stored = {}
+
     path = _resolve_pdf_path(row)
-    if path and path.exists():
+    if _cached_pdf_is_usable(path, stored):
         pdf_bytes = path.read_bytes()
     else:
         # Older rows (and any row whose render failed) are recovered here so a
         # stored audit is always downloadable.
-        try:
-            stored = json.loads(row.report_json) if row.report_json else {}
-        except (TypeError, ValueError):
-            stored = {}
-
         try:
             pdf_bytes = build_audit_pdf(
                 stored,
                 report_id=row.report_id,
                 audit_type=row.report_type or audit_type_for(row.mode),
                 generated_at=row.created_at,
+                language=stored.get("language"),
             )
         except Exception:
             logger.exception("On-demand PDF render failed for audit %s", audit_id)
@@ -467,12 +487,15 @@ def download_pdf(
             )
 
         try:
-            filename = (
-                f"{row.report_id or generate_report_id()}-"
-                f"{_safe_slug(row.project_or_platform_name)}.pdf"
+            cache_path = path or (
+                storage_dir()
+                / (
+                    f"{row.report_id or generate_report_id()}-"
+                    f"{_safe_slug(row.project_or_platform_name)}.pdf"
+                )
             )
-            (storage_dir() / filename).write_bytes(pdf_bytes)
-            row.pdf_filename = filename
+            cache_path.write_bytes(pdf_bytes)
+            row.pdf_filename = cache_path.name
             db.commit()
         except Exception:
             logger.warning("Could not cache regenerated PDF for audit %s", audit_id)

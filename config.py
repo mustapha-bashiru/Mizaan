@@ -10,7 +10,7 @@ from typing import List
 
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 
 def _get_bool(name: str, default: bool = False) -> bool:
@@ -74,7 +74,7 @@ class Settings:
             "REPORT_STORAGE_DIR", "./report_storage"
         )
         self.report_retention_limit: int = _get_int("REPORT_RETENTION_LIMIT", 100)
-        self.brand_website: str = os.getenv("BRAND_WEBSITE", "www.mizaan.app")
+        self.brand_website: str = os.getenv("BRAND_WEBSITE", "www.mizaanai.co")
         self.brand_confidentiality_notice: str = os.getenv(
             "BRAND_CONFIDENTIALITY_NOTICE",
             "This document contains confidential AI-generated Shariah risk "

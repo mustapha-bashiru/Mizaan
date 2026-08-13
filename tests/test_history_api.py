@@ -208,6 +208,32 @@ def test_pdf_is_rendered_on_demand_when_missing(client, db):
     assert response.headers["cache-control"] == "private, no-store"
 
 
+def test_malformed_cached_arabic_pdf_is_rerendered(client, db, monkeypatch):
+    alice = _make_user(db, "alice@example.com")
+    audit = _make_audit(db, alice)
+    audit.report_json = '{"language": "ar", "executive_summary": "ملخص"}'
+    audit.pdf_filename = "legacy-arabic.pdf"
+    legacy_path = history.storage_dir() / audit.pdf_filename
+    legacy_path.write_bytes(b"%PDF-legacy-Helvetica-only")
+    db.commit()
+
+    rendered = b"%PDF-repaired-IBMPlexSansArabic"
+    calls = []
+
+    def fake_build(*args, **kwargs):
+        calls.append(kwargs)
+        return rendered
+
+    monkeypatch.setattr(history, "build_audit_pdf", fake_build)
+
+    response = client.get(f"/api/history/{audit.id}/pdf", headers=_auth(alice))
+
+    assert response.status_code == 200
+    assert response.content == rendered
+    assert calls[0]["language"] == "ar"
+    assert legacy_path.read_bytes() == rendered
+
+
 def test_traversal_filename_is_not_read_from_disk(client, db):
     alice = _make_user(db, "alice@example.com")
     audit = _make_audit(db, alice)

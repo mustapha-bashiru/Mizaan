@@ -170,6 +170,9 @@ const resources = {
       donation_method_label: "Payment method",
       donation_method_card: "Card",
       donation_method_card_hint: "Visa / Mastercard",
+      donation_method_card_coming_soon: "Coming Soon",
+      donation_card_disabled_notice:
+        "Card processing is launching soon. Please use the crypto donation methods for now.",
       donation_method_usdt: "USDT",
       donation_method_usdt_hint: "Tether",
       donation_method_bitcoin: "Bitcoin",
@@ -729,6 +732,9 @@ const resources = {
       donation_method_label: "Moyen de paiement",
       donation_method_card: "Carte",
       donation_method_card_hint: "Visa / Mastercard",
+      donation_method_card_coming_soon: "Bientôt disponible",
+      donation_card_disabled_notice:
+        "Le traitement par carte est en cours de lancement. Veuillez utiliser les méthodes de donation crypto pour le moment.",
       donation_method_usdt: "USDT",
       donation_method_usdt_hint: "Tether",
       donation_method_bitcoin: "Bitcoin",
