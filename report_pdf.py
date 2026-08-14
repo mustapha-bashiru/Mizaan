@@ -44,13 +44,22 @@ from reportlab.platypus import (
 
 from config import settings
 from report_i18n import (
+    arabic_pdf_text,
     Localizer,
     current_localizer,
     escape_xml,
+    resolve_pdf_language,
     reset_language,
     use_language,
 )
 from report_schema import normalize_report
+
+ARABIC_PDF_CACHE_MARKER = "MizaanArabicPDF-v2"
+_ARABIC_PROJECT_NAMES = {
+    "bitcoin": "بيتكوين",
+    "ethereum": "إيثريوم",
+    "shiba inu": "شيبا إينو",
+}
 
 # ---------------------------------------------------------------------------
 # Brand tokens
@@ -591,7 +600,7 @@ class _ReportCanvas(pdfcanvas.Canvas):
         self.setFont(loc.font_bold, 9.5)
         # The wordmark is a brand asset and stays in Latin script in every
         # language; the descriptor beneath it is translated.
-        self.drawString(MARGIN_X + 17, y + 3, "MIZAAN AI")
+        self.drawString(MARGIN_X + 17, y + 3, loc.shape(loc.text("brand_name")))
         self.setFillColor(INK_SOFT)
         self.setFont(loc.font, 7)
         self.drawString(
@@ -675,8 +684,7 @@ class _CoverPage(Flowable):
         loc = _loc()
         logo_size = 34
         logo_y = PAGE_HEIGHT - 42 * mm
-        # The wordmark is a brand asset and is never transliterated.
-        wordmark = "MIZAAN AI"
+        wordmark = loc.text("brand_name")
         tagline = loc.shape(loc.text("brand_tagline"))
         text_width = max(
             stringWidth(wordmark, loc.font_bold, 21),
@@ -689,7 +697,7 @@ class _CoverPage(Flowable):
         draw_mizan_mark(canvas, lockup_x, logo_y, logo_size)
         canvas.setFillColor(colors.white)
         canvas.setFont(loc.font_bold, 21)
-        canvas.drawString(text_x, logo_y + 16, wordmark)
+        canvas.drawString(text_x, logo_y + 16, loc.shape(wordmark))
         canvas.setFont(loc.font, 7.5)
         # White rather than the accent green: at 7.5pt the accent had too little
         # contrast against the dark green panel to stay legible.
@@ -1192,9 +1200,7 @@ def build_audit_pdf(
 
     # Activated for the whole render: flowables read the localizer at draw
     # time, which happens inside doc.build() rather than here.
-    localizer, token = use_language(
-        language if language is not None else source.get("language")
-    )
+    localizer, token = use_language(resolve_pdf_language(source, language))
     try:
         return _render(
             raw_report,
@@ -1222,6 +1228,8 @@ def _render(
         generated_at=generated_at,
         language=localizer.language,
     )
+    if localizer.language == "ar":
+        report = _prepare_arabic_pdf_report(report, localizer)
 
     moment = generated_at or datetime.now(timezone.utc)
     # strftime's month names follow the process locale, not the report, so the
@@ -1232,10 +1240,18 @@ def _render(
     doc = BaseDocTemplate(
         buffer,
         pagesize=A4,
-        title=f"{report['project_name']} — {localizer.text('doc_title_suffix')}",
-        author="Mizaan AI",
+        title=(
+            f"{report['project_name']} — {localizer.text('doc_title_suffix')}"
+            if localizer.language != "ar"
+            else localizer.text("doc_title_suffix")
+        ),
+        author=localizer.text("brand_name"),
         subject=localizer.audit_type(report["audit_type"]),
-        creator="Mizaan AI",
+        creator=(
+            ARABIC_PDF_CACHE_MARKER
+            if localizer.language == "ar"
+            else "Mizaan AI"
+        ),
 
         leftMargin=MARGIN_X,
         rightMargin=MARGIN_X,
@@ -1319,3 +1335,32 @@ def _render(
 
     doc.build(story, canvasmaker=_make_canvas)
     return buffer.getvalue()
+
+
+def _prepare_arabic_pdf_report(
+    report: Dict[str, Any], localizer: Localizer
+) -> Dict[str, Any]:
+    """Sanitizes display copies of model prose for the Arabic PDF only."""
+    untouched = {
+        "report_id", "audit_type", "generated_at", "project_name",
+        "token_ticker", "language", "risk_band",
+    }
+
+    def clean(value: Any, key: str = "") -> Any:
+        if key in untouched:
+            return value
+        if isinstance(value, dict):
+            return {item_key: clean(item, item_key) for item_key, item in value.items()}
+        if isinstance(value, list):
+            return [clean(item, key) for item in value]
+        if isinstance(value, str):
+            return arabic_pdf_text(value)
+        return value
+
+    prepared = clean(report)
+    project_name = str(report.get("project_name") or "").strip()
+    prepared["project_name"] = _ARABIC_PROJECT_NAMES.get(
+        project_name.casefold(), arabic_pdf_text(project_name)
+    ) or "مشروع غير مسمى"
+    prepared["classification"] = localizer.classification(report["classification"])
+    return prepared

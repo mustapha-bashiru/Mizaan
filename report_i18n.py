@@ -69,6 +69,7 @@ _RTL_CHARS = re.compile(
 LABELS: Dict[str, Dict[str, str]] = {
     "en": {
         "brand_tagline": "E T H I C A L   ·   T R A N S P A R E N T   ·   S H A R I A H",
+        "brand_name": "MIZAAN AI",
         "header_subtitle": "SHARIAH COMPLIANCE AUDIT",
         "footer_left": "Mizaan AI  |  Confidential Report",
         "footer_page": "Page {page} of {total}",
@@ -124,6 +125,7 @@ LABELS: Dict[str, Dict[str, str]] = {
     },
     "fr": {
         "brand_tagline": "É T H I Q U E   ·   T R A N S P A R E N T   ·   C H A R I A",
+        "brand_name": "MIZAAN AI",
         "header_subtitle": "AUDIT DE CONFORMITÉ À LA CHARIA",
         "footer_left": "Mizaan AI  |  Rapport confidentiel",
         "footer_page": "Page {page} sur {total}",
@@ -184,16 +186,17 @@ LABELS: Dict[str, Dict[str, str]] = {
         # Arabic is never letter-spaced: inserting spaces between letters would
         # break the cursive joining the shaper depends on.
         "brand_tagline": "أخلاقي  ·  شفّاف  ·  شرعي",
+        "brand_name": "ميزان",
         "header_subtitle": "تدقيق الامتثال الشرعي",
         "footer_left": "ميزان  |  تقرير سري",
         "footer_page": "صفحة {page} من {total}",
-        "footer_right": "أُنشئ بالذكاء الاصطناعي  |  {site}",
+        "footer_right": "أُنشئ بالذكاء الاصطناعي",
         "cover_kicker": "تقرير التدقيق",
         "cover_project": "اسم المشروع",
         "cover_audit_type": "نوع التدقيق",
         "cover_date": "تاريخ الإصدار",
         "cover_report_id": "معرّف التقرير",
-        "cover_footer": "أُنشئ بالذكاء الاصطناعي  ·  {site}",
+        "cover_footer": "أُنشئ بالذكاء الاصطناعي",
         "confidential": "سرّي",
         "doc_title_suffix": "تقرير تدقيق ميزان",
         "section_executive_summary": "الملخص التنفيذي",
@@ -364,6 +367,73 @@ MONTHS: Dict[str, Tuple[str, ...]] = {
 }
 
 
+# Arabic audits are requested from the model in Arabic, but older rows often
+# retain an English alias in parentheses. These replacements cover terms also
+# seen outside parentheses; any unknown Latin jargon is removed below rather
+# than leaking into an otherwise Arabic PDF.
+ARABIC_PDF_TERMS: Tuple[Tuple[str, str], ...] = (
+    ("Layer 1 Blockchain", "سلسلة كتل من الطبقة الأولى"),
+    ("Proof of Work", "إثبات العمل"),
+    ("Margin Trading", "التداول بالهامش"),
+    ("Spot Trading", "التداول الفوري"),
+    ("Mining Pools", "مجمعات التعدين"),
+    ("Liquidity Pools", "مجمعات السيولة"),
+    ("Smart Contracts", "العقود الذكية"),
+    ("Yield Farming", "زراعة العائد"),
+    ("Real World Assets", "أصول العالم الحقيقي"),
+    ("Decentralized Finance", "التمويل اللامركزي"),
+    ("Sahih Muslim", "صحيح مسلم"),
+    ("Blockchain", "سلسلة الكتل"),
+    ("Stablecoin", "عملة مستقرة"),
+    ("Tokenomics", "اقتصاديات الرمز"),
+    ("Halving", "التنصيف الدوري"),
+    ("Staking", "التحصيص"),
+    ("Bitcoin", "بيتكوين"),
+    ("Ethereum", "إيثريوم"),
+    ("DeFi", "التمويل اللامركزي"),
+    ("PoW", "إثبات العمل"),
+    ("RWA", "أصول العالم الحقيقي"),
+    ("NFT", "رمز غير قابل للاستبدال"),
+    ("DAO", "منظمة مستقلة لامركزية"),
+    ("KYC", "اعرف عميلك"),
+    ("AML", "مكافحة غسل الأموال"),
+    ("BTC", "بيتكوين"),
+)
+
+_LATIN_PARENTHETICAL = re.compile(
+    r"\s*[\(\[]\s*[^()\[\]]*[A-Za-z][^()\[\]]*[\)\]]"
+)
+_LATIN_WORD_RUN = re.compile(r"[A-Za-z][A-Za-z0-9]*(?:[ \t]+[A-Za-z][A-Za-z0-9]*)*")
+
+
+def arabic_pdf_text(value: Any) -> str:
+    """Returns Arabic-only display text for an Arabic audit PDF.
+
+    This is deliberately a rendering helper, not a report translator: stored
+    JSON and web/API responses remain byte-for-byte untouched. The model is
+    already instructed to write Arabic; this closes the common leakage path of
+    explanatory English aliases and removes unknown Latin jargon defensively.
+    """
+    text = "" if value is None else str(value).strip()
+    if not text or not re.search(r"[A-Za-z]", text):
+        return text
+
+    # English text in parentheses is normally an explanatory alias for the
+    # Arabic phrase immediately before it. Drop it before glossary replacement
+    # so "بيتكوين (Bitcoin)" does not become "بيتكوين (بيتكوين)".
+    text = _LATIN_PARENTHETICAL.sub("", text)
+
+    for english, arabic in ARABIC_PDF_TERMS:
+        text = re.sub(re.escape(english), arabic, text, flags=re.IGNORECASE)
+
+    # Any unknown Latin jargon is safer omitted than leaked as English prose.
+    text = _LATIN_WORD_RUN.sub("", text)
+    text = re.sub(r"\(\s*\)|\[\s*\]", "", text)
+    text = re.sub(r"[ \t]+([،؛:,.!?])", r"\1", text)
+    text = re.sub(r"[ \t]{2,}", " ", text)
+    return text.strip(" \t-–—·|/:،؛")
+
+
 # Derived from the catalog so adding a language means adding its labels and
 # nothing else.
 SUPPORTED_LANGUAGES: Tuple[str, ...] = tuple(LABELS)
@@ -381,6 +451,32 @@ def is_rtl(language: Any) -> bool:
 
 def contains_rtl(text: Any) -> bool:
     return bool(_RTL_CHARS.search(str(text or "")))
+
+
+def resolve_pdf_language(report: Any, language: Any = None) -> str:
+    """Resolves the locale for PDF rendering, including legacy Arabic rows.
+
+    Current reports carry an explicit ``language`` value and that value always
+    wins. Reports saved before that field existed are inspected recursively so
+    Arabic model prose is not rendered with English labels and Helvetica.
+    This inference is intentionally confined to PDF generation and does not
+    mutate stored report data or affect API/UI localization.
+    """
+    explicit = language
+    if explicit is None and isinstance(report, dict):
+        explicit = report.get("language")
+
+    if str(explicit or "").strip():
+        return normalize_language(explicit)
+
+    def has_rtl(value: Any) -> bool:
+        if isinstance(value, dict):
+            return any(has_rtl(item) for item in value.values())
+        if isinstance(value, (list, tuple, set)):
+            return any(has_rtl(item) for item in value)
+        return isinstance(value, str) and contains_rtl(value)
+
+    return "ar" if has_rtl(report) else DEFAULT_LANGUAGE
 
 
 # ---------------------------------------------------------------------------

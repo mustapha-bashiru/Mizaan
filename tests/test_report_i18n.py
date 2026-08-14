@@ -9,6 +9,7 @@ rendered file* rather than on the render merely succeeding.
 
 from __future__ import annotations
 
+import re
 import unicodedata
 
 import pytest
@@ -18,8 +19,10 @@ from report_i18n import (
     LABELS,
     SUPPORTED_LANGUAGES,
     Localizer,
+    arabic_pdf_text,
     contains_rtl,
     normalize_language,
+    resolve_pdf_language,
     register_rtl_fonts,
     shape_rtl,
     wrap_rtl_lines,
@@ -28,6 +31,10 @@ from report_pdf import build_audit_pdf
 from report_schema import normalize_report
 
 ARABIC_SENTENCE = "لا يوجد أصل حقيقي يدعم العملة، والقيمة تعتمد على المضاربة فقط."
+ARABIC_WITH_JARGON = (
+    "تعتمد الشبكة على Proof of Work وMining Pools، ثم Unknown Jargon، "
+    "مع تداول BTC فورياً."
+)
 
 SAMPLE = {
     "project_name": "Shiba Inu",
@@ -128,6 +135,21 @@ def test_no_language_leaves_a_label_empty():
             assert value.strip(), f"{language}.{key} is empty"
 
 
+def test_arabic_pdf_text_translates_known_terms_and_removes_unknown_jargon():
+    cleaned = arabic_pdf_text(ARABIC_WITH_JARGON)
+
+    assert "إثبات العمل" in cleaned
+    assert "مجمعات التعدين" in cleaned
+    assert "بيتكوين" in cleaned
+    assert not re.search(r"[A-Za-z]", cleaned)
+
+
+def test_arabic_pdf_text_drops_english_parenthetical_aliases():
+    cleaned = arabic_pdf_text("تعد بيتكوين (Bitcoin) أصلاً رقمياً يعتمد على الشبكة.")
+
+    assert cleaned == "تعد بيتكوين أصلاً رقمياً يعتمد على الشبكة."
+
+
 # ---------------------------------------------------------------------------
 # Shaping / wrapping
 # ---------------------------------------------------------------------------
@@ -212,10 +234,41 @@ def test_arabic_pdf_has_no_english_furniture_left():
         )
 
 
+def test_arabic_pdf_removes_model_jargon_but_keeps_machine_identifier():
+    report = {
+        **SAMPLE,
+        "executive_summary": ARABIC_WITH_JARGON,
+        "project_name": "مشروع تجريبي",
+        "report_id": "MZN-TEST-AR-001",
+    }
+    text = _extract(build_audit_pdf(report, language="ar"))
+
+    latin_tokens = set(re.findall(r"[A-Za-z][A-Za-z0-9-]*", text))
+    assert latin_tokens <= {"MZN-TEST-AR-001"}
+    assert "MIZAAN" not in text
+    assert "AI" not in text
+    assert "Proof" not in text
+    assert "Unknown" not in text
+    assert _contains(text, "إثبات العمل")
+
+
 def test_language_is_taken_from_the_report_when_not_passed():
     """A stored report re-renders in the language it was created in."""
     text = _extract(build_audit_pdf({**SAMPLE, "language": "ar"}))
     assert contains_rtl(text)
+
+
+def test_legacy_arabic_report_without_language_uses_arabic_pdf_renderer():
+    legacy = {**SAMPLE, "language": None, "executive_summary": ARABIC_SENTENCE}
+
+    assert resolve_pdf_language(legacy) == "ar"
+    text = _extract(build_audit_pdf(legacy))
+    assert _contains(text, LABELS["ar"]["section_executive_summary"])
+    assert not _contains(text, LABELS["en"]["section_executive_summary"])
+
+
+def test_explicit_pdf_language_wins_over_script_detection():
+    assert resolve_pdf_language({"executive_summary": ARABIC_SENTENCE}, "fr") == "fr"
 
 
 def test_unknown_language_falls_back_to_english_rather_than_failing():

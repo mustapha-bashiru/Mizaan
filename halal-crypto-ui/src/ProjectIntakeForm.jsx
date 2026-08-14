@@ -146,17 +146,17 @@ export default function ProjectIntakeForm({ onSubmit, isLoading, prefill }) {
   };
 
   return (
-    <div className="max-w-4xl mx-auto w-full px-4">
+    <div className="w-full">
       <form 
         onSubmit={handleSubmit} 
-        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-lg dark:shadow-xl space-y-5 font-sans text-slate-900 dark:text-slate-100 transition-colors duration-200"
+        className="mx-auto w-full max-w-6xl space-y-5 rounded-lg border border-slate-200 bg-white p-4 font-sans text-slate-900 shadow-lg transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:shadow-xl sm:p-6 lg:p-8"
       >
         {/* Mode Switcher Tabs */}
-        <div className="grid grid-cols-2 gap-2 bg-slate-100 dark:bg-slate-950 p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 transition-colors duration-200">
+        <div className="grid grid-cols-2 gap-1.5 rounded-lg border border-slate-200 bg-slate-100 p-1.5 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-950">
           <button
             type="button"
             onClick={() => handleModeChange('crypto')}
-            className={`py-2.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center justify-center ${
+            className={`flex min-h-12 min-w-0 items-center justify-center rounded-md px-2 py-2 text-xs font-bold transition cursor-pointer ${
               auditMode === 'crypto'
                 ? 'bg-[#f7931a] text-slate-950 shadow-xl shadow-[#f7931a]/30'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
@@ -164,24 +164,24 @@ export default function ProjectIntakeForm({ onSubmit, isLoading, prefill }) {
           >
             {/* Icons live outside the translated string so every locale keeps
                 the same visual marker on both tabs. */}
-            <span className="inline-flex items-center gap-2">
+            <span className="inline-flex min-w-0 items-center justify-center gap-1.5 text-center leading-4 sm:gap-2">
               <span aria-hidden="true" className="text-base leading-none">₿</span>
-              <span>{t('crypto_audit_btn', 'Crypto & DeFi Audit')}</span>
+              <span className="break-words">{t('crypto_audit_btn', 'Crypto & DeFi Audit')}</span>
             </span>
 
           </button>
           <button
             type="button"
             onClick={() => handleModeChange('ecommerce')}
-            className={`py-2.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center justify-center ${
+            className={`flex min-h-12 min-w-0 items-center justify-center rounded-md px-2 py-2 text-xs font-bold transition cursor-pointer ${
               auditMode === 'ecommerce'
                 ? 'bg-indigo-600 text-slate-100 shadow-md'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
-            <span className="inline-flex items-center gap-2">
+            <span className="inline-flex min-w-0 items-center justify-center gap-1.5 text-center leading-4 sm:gap-2">
               <span aria-hidden="true" className="text-base leading-none">🛒</span>
-              <span>{t('ecommerce_audit_btn', 'E-Commerce & Freelance Audit')}</span>
+              <span className="break-words">{t('ecommerce_audit_btn', 'E-Commerce & Freelance Audit')}</span>
             </span>
           </button>
 
@@ -214,7 +214,7 @@ export default function ProjectIntakeForm({ onSubmit, isLoading, prefill }) {
               placeholder={auditMode === 'crypto' 
                 ? t('project_name_placeholder', 'e.g. Uniswap') 
                 : t('platform_name_placeholder', 'e.g. Upwork, Fiverr, Shopify')}
-              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg p-3 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500 placeholder-slate-400 dark:placeholder-slate-500 transition-colors duration-200"
+              className="min-h-11 w-full rounded-lg border border-slate-300 bg-slate-50 p-3 text-sm text-slate-900 placeholder-slate-400 transition-colors duration-200 focus:border-emerald-500 focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:placeholder-slate-500"
             />
           </div>
 
@@ -233,7 +233,7 @@ export default function ProjectIntakeForm({ onSubmit, isLoading, prefill }) {
                 value={formData.tokenTicker}
                 onChange={handleChange}
                 placeholder={t('token_ticker_placeholder', 'e.g. UNI')}
-                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg p-3 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500 placeholder-slate-400 dark:placeholder-slate-500 font-mono transition-colors duration-200"
+                className="min-h-11 w-full rounded-lg border border-slate-300 bg-slate-50 p-3 font-mono text-sm text-slate-900 placeholder-slate-400 transition-colors duration-200 focus:border-emerald-500 focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:placeholder-slate-500"
               />
             </div>
           ) : (
@@ -251,7 +251,7 @@ export default function ProjectIntakeForm({ onSubmit, isLoading, prefill }) {
                 value={formData.liveUrl}
                 onChange={handleChange}
                 placeholder={t('live_url_placeholder', 'https://www.upwork.com/legal#terms')}
-                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg p-3 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500 placeholder-slate-400 dark:placeholder-slate-500 transition-colors duration-200"
+                className="min-h-11 w-full rounded-lg border border-slate-300 bg-slate-50 p-3 text-sm text-slate-900 placeholder-slate-400 transition-colors duration-200 focus:border-emerald-500 focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:placeholder-slate-500"
               />
             </div>
           )}
@@ -272,7 +272,7 @@ export default function ProjectIntakeForm({ onSubmit, isLoading, prefill }) {
               name="protocolCategory"
               value={formData.protocolCategory}
               onChange={handleChange}
-              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg p-3 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500 transition-colors duration-200 cursor-pointer"
+              className="min-h-11 w-full rounded-lg border border-slate-300 bg-slate-50 p-3 text-sm text-slate-900 transition-colors duration-200 focus:border-emerald-500 focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 cursor-pointer"
             >
               {selectionHidden && (
                 <optgroup
@@ -373,7 +373,7 @@ export default function ProjectIntakeForm({ onSubmit, isLoading, prefill }) {
             multiple
             accept=".pdf,.docx,.txt,.md,.png,.jpg,.jpeg,.webp"
             onChange={handleFileChange}
-            className="block w-full text-xs text-slate-600 dark:text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-emerald-100 dark:file:bg-emerald-950 file:text-emerald-700 dark:file:text-emerald-400 hover:file:bg-emerald-200 dark:hover:file:bg-emerald-900 cursor-pointer transition-colors duration-200"
+            className="block min-h-11 w-full min-w-0 overflow-hidden text-xs text-slate-600 file:me-2 file:min-h-10 file:max-w-full file:rounded-md file:border-0 file:bg-emerald-100 file:px-3 file:text-xs file:font-semibold file:text-emerald-700 hover:file:bg-emerald-200 dark:text-slate-400 dark:file:bg-emerald-950 dark:file:text-emerald-400 dark:hover:file:bg-emerald-900 cursor-pointer transition-colors duration-200"
           />
           <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1.5">
             {t('upload_hint', 'PDF, Word, text or images (diagrams/screenshots). Up to 5 files, 10 MB each.')}
@@ -381,7 +381,7 @@ export default function ProjectIntakeForm({ onSubmit, isLoading, prefill }) {
           {attachments.length > 0 && (
             <ul className="mt-2 space-y-0.5">
               {attachments.map((file) => (
-                <li key={file.name} className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                <li key={file.name} className="break-all text-[10px] text-slate-500 dark:text-slate-400">
                   📎 {file.name}
                 </li>
               ))}
@@ -417,7 +417,7 @@ export default function ProjectIntakeForm({ onSubmit, isLoading, prefill }) {
         <button
           type="submit"
           disabled={isLoading}
-          className={`w-full py-3.5 font-bold rounded-xl text-xs transition cursor-pointer flex items-center justify-center gap-2 shadow-md ${
+          className={`flex min-h-12 w-full items-center justify-center gap-2 rounded-lg px-3 py-3 text-center text-xs font-bold leading-5 shadow-md transition cursor-pointer ${
             auditMode === 'crypto'
               ? 'bg-amber-500 hover:bg-amber-400 disabled:bg-amber-900 text-slate-950'
               : 'bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-900 text-white'

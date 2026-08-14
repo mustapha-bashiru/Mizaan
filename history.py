@@ -40,8 +40,8 @@ from auth import get_current_user
 from config import settings
 from database import get_db
 from models import AuditHistory, UserDB
-from report_i18n import normalize_language
-from report_pdf import build_audit_pdf
+from report_i18n import normalize_language, resolve_pdf_language
+from report_pdf import ARABIC_PDF_CACHE_MARKER, build_audit_pdf
 from report_schema import clamp_score, generate_report_id, normalize_report, risk_band
 
 logger = logging.getLogger(__name__)
@@ -270,11 +270,15 @@ def _cached_pdf_is_usable(path: Optional[Path], report: Dict[str, Any]) -> bool:
     """
     if not path or not path.exists():
         return False
-    if normalize_language(report.get("language")) != "ar":
+    if resolve_pdf_language(report) != "ar":
         return True
 
     try:
-        return b"IBMPlexSansArabic" in path.read_bytes()
+        payload = path.read_bytes()
+        return (
+            b"IBMPlexSansArabic" in payload
+            and ARABIC_PDF_CACHE_MARKER.encode("ascii") in payload
+        )
     except OSError:
         return False
 
@@ -477,7 +481,7 @@ def download_pdf(
                 report_id=row.report_id,
                 audit_type=row.report_type or audit_type_for(row.mode),
                 generated_at=row.created_at,
-                language=stored.get("language"),
+                language=resolve_pdf_language(stored),
             )
         except Exception:
             logger.exception("On-demand PDF render failed for audit %s", audit_id)

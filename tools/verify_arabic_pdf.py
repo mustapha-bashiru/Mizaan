@@ -11,6 +11,7 @@ Run with:  python tools/verify_arabic_pdf.py
 from __future__ import annotations
 
 import sys
+import re
 import unicodedata
 from pathlib import Path
 
@@ -33,13 +34,13 @@ PROBE_KEYS = (
 )
 
 SAMPLE = {
-    "project_name": "Shiba Inu",
+    "project_name": "مشروع تجريبي",
     "token_ticker": "SHIB",
     "overall_shariah_risk_score": 78,
     "classification": "Non-Compliant",
     "confidence_level": 0.86,
     "executive_summary": (
-        "التقييم يشير إلى أن هذا المشروع ينطوي على درجة عالية من الغرر والمضاربة، "
+        "التقييم يعتمد على Proof of Work وMining Pools، مع Unknown Jargon، "
         "ولا توجد أصول حقيقية تدعم قيمة العملة."
     ),
     "key_findings": [
@@ -71,6 +72,7 @@ SAMPLE = {
             "relevance": "الأصل في البيع الحل ما لم يشتمل على ربا أو غرر.",
         },
     ],
+    "report_id": "MZN-ARABIC-CHECK",
 }
 
 
@@ -120,6 +122,17 @@ def _check(language: str) -> bool:
             if _contains(normalized, english):
                 print(f"FAIL: untranslated English label {english!r} on the page")
                 ok = False
+
+        # Arabic prose may legitimately carry numbers and the report ID, but
+        # not Latin brand copy or model jargon.
+        latin_tokens = set(re.findall(r"[A-Za-z][A-Za-z0-9-]*", normalized))
+        allowed = {"MZN-ARABIC-CHECK"}
+        unexpected = sorted(latin_tokens - allowed)
+        if unexpected:
+            print(f"FAIL: Latin text leaked into Arabic PDF: {unexpected}")
+            ok = False
+        else:
+            print("ok: no Latin prose or jargon leaked")
 
     for key in PROBE_KEYS:
         expected = unicodedata.normalize("NFKC", loc.text(key))

@@ -217,7 +217,7 @@ def test_malformed_cached_arabic_pdf_is_rerendered(client, db, monkeypatch):
     legacy_path.write_bytes(b"%PDF-legacy-Helvetica-only")
     db.commit()
 
-    rendered = b"%PDF-repaired-IBMPlexSansArabic"
+    rendered = b"%PDF-repaired-IBMPlexSansArabic-MizaanArabicPDF-v2"
     calls = []
 
     def fake_build(*args, **kwargs):
@@ -232,6 +232,53 @@ def test_malformed_cached_arabic_pdf_is_rerendered(client, db, monkeypatch):
     assert response.content == rendered
     assert calls[0]["language"] == "ar"
     assert legacy_path.read_bytes() == rendered
+
+
+def test_pre_purity_arabic_pdf_is_rerendered(client, db, monkeypatch):
+    alice = _make_user(db, "alice-cache@example.com")
+    audit = _make_audit(db, alice)
+    audit.report_json = '{"language": "ar", "executive_summary": "ملخص"}'
+    audit.pdf_filename = "old-arabic-with-font.pdf"
+    cached_path = history.storage_dir() / audit.pdf_filename
+    cached_path.write_bytes(b"%PDF-IBMPlexSansArabic-with-English-jargon")
+    db.commit()
+
+    rendered = b"%PDF-IBMPlexSansArabic-MizaanArabicPDF-v2"
+    monkeypatch.setattr(history, "build_audit_pdf", lambda *args, **kwargs: rendered)
+
+    response = client.get(f"/api/history/{audit.id}/pdf", headers=_auth(alice))
+
+    assert response.status_code == 200
+    assert response.content == rendered
+    assert cached_path.read_bytes() == rendered
+
+
+def test_legacy_arabic_pdf_without_language_marker_is_rerendered(
+    client, db, monkeypatch
+):
+    alice = _make_user(db, "legacy-arabic@example.com")
+    audit = _make_audit(db, alice)
+    audit.report_json = '{"executive_summary": "ملخص عربي"}'
+    audit.pdf_filename = "legacy-arabic-without-language.pdf"
+    cached_path = history.storage_dir() / audit.pdf_filename
+    cached_path.write_bytes(b"%PDF-legacy-Helvetica-only")
+    db.commit()
+
+    rendered = b"%PDF-IBMPlexSansArabic-MizaanArabicPDF-v2"
+    calls = []
+
+    def fake_build(*args, **kwargs):
+        calls.append(kwargs)
+        return rendered
+
+    monkeypatch.setattr(history, "build_audit_pdf", fake_build)
+
+    response = client.get(f"/api/history/{audit.id}/pdf", headers=_auth(alice))
+
+    assert response.status_code == 200
+    assert response.content == rendered
+    assert calls[0]["language"] == "ar"
+    assert cached_path.read_bytes() == rendered
 
 
 def test_traversal_filename_is_not_read_from_disk(client, db):
