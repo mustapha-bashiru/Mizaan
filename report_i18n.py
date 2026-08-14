@@ -453,11 +453,11 @@ def contains_rtl(text: Any) -> bool:
 
 
 def resolve_pdf_language(report: Any, language: Any = None) -> str:
-    """Resolves the locale for PDF rendering, including legacy Arabic rows.
+    """Resolves the locale for PDF rendering, including stale legacy rows.
 
-    Current reports carry an explicit ``language`` value and that value always
-    wins. Reports saved before that field existed are inspected recursively so
-    Arabic model prose is not rendered with English labels and Helvetica.
+    Current reports carry an explicit ``language`` value. Older rows can carry
+    a stale ``en`` value even though the model prose is Arabic, so Arabic-
+    dominant payloads are detected before selecting a Latin-only PDF renderer.
     This inference is intentionally confined to PDF generation and does not
     mutate stored report data or affect API/UI localization.
     """
@@ -465,17 +465,31 @@ def resolve_pdf_language(report: Any, language: Any = None) -> str:
     if explicit is None and isinstance(report, dict):
         explicit = report.get("language")
 
-    if str(explicit or "").strip():
+    explicit_code = str(explicit or "").strip().lower().replace("_", "-").split("-")[0]
+    if explicit_code and explicit_code != DEFAULT_LANGUAGE:
         return normalize_language(explicit)
 
-    def has_rtl(value: Any) -> bool:
+    def script_counts(value: Any) -> Tuple[int, int]:
         if isinstance(value, dict):
-            return any(has_rtl(item) for item in value.values())
+            counts = [script_counts(item) for item in value.values()]
+            return sum(item[0] for item in counts), sum(item[1] for item in counts)
         if isinstance(value, (list, tuple, set)):
-            return any(has_rtl(item) for item in value)
-        return isinstance(value, str) and contains_rtl(value)
+            counts = [script_counts(item) for item in value]
+            return sum(item[0] for item in counts), sum(item[1] for item in counts)
+        if not isinstance(value, str):
+            return 0, 0
 
-    return "ar" if has_rtl(report) else DEFAULT_LANGUAGE
+        rtl = sum(1 for char in value if _RTL_CHARS.match(char))
+        latin = sum(1 for char in value if char.isascii() and char.isalpha())
+        return rtl, latin
+
+    rtl_chars, latin_chars = script_counts(report)
+    if rtl_chars >= 20 and rtl_chars > latin_chars:
+        return "ar"
+    if explicit_code:
+        return normalize_language(explicit)
+
+    return "ar" if rtl_chars else DEFAULT_LANGUAGE
 
 
 # ---------------------------------------------------------------------------

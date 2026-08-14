@@ -103,6 +103,28 @@ def test_normalize_language(value, expected):
     assert normalize_language(value) == expected
 
 
+def test_pdf_language_overrides_stale_english_for_arabic_dominant_report():
+    report = {
+        "language": "en",
+        "project_name": "Catizen",
+        "executive_summary": ARABIC_SENTENCE,
+        "key_findings": [ARABIC_SENTENCE],
+    }
+
+    assert resolve_pdf_language(report) == "ar"
+    assert resolve_pdf_language(report, "en") == "ar"
+
+
+def test_pdf_language_keeps_english_for_an_isolated_arabic_reference():
+    report = {
+        "language": "en",
+        "executive_summary": "This is a detailed English Shariah audit report.",
+        "quran_hadith_references": [{"text": "وأحل الله البيع وحرم الربا"}],
+    }
+
+    assert resolve_pdf_language(report) == "en"
+
+
 def test_arabic_localizer_uses_an_arabic_capable_font():
     loc = Localizer("ar")
     assert loc.is_rtl is True
@@ -282,6 +304,21 @@ def test_language_is_taken_from_the_report_when_not_passed():
 
 def test_legacy_arabic_report_without_language_uses_arabic_pdf_renderer():
     legacy = {**SAMPLE, "language": None, "executive_summary": ARABIC_SENTENCE}
+
+    assert resolve_pdf_language(legacy) == "ar"
+    text = _extract(build_audit_pdf(legacy))
+    assert _contains(text, LABELS["ar"]["section_executive_summary"])
+    assert not _contains(text, LABELS["en"]["section_executive_summary"])
+
+
+def test_arabic_dominant_report_overrides_stale_english_language_marker():
+    legacy = {
+        **SAMPLE,
+        "language": "en",
+        "project_name": "Catizen",
+        "executive_summary": ARABIC_SENTENCE * 3,
+        "key_findings": [ARABIC_SENTENCE, ARABIC_SENTENCE],
+    }
 
     assert resolve_pdf_language(legacy) == "ar"
     text = _extract(build_audit_pdf(legacy))

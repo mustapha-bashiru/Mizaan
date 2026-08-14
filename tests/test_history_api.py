@@ -281,6 +281,39 @@ def test_legacy_arabic_pdf_without_language_marker_is_rerendered(
     assert cached_path.read_bytes() == rendered
 
 
+def test_arabic_pdf_with_stale_english_marker_is_rerendered(
+    client, db, monkeypatch
+):
+    alice = _make_user(db, "stale-language@example.com")
+    audit = _make_audit(db, alice, name="Catizen")
+    audit.report_json = (
+        '{"language":"en","project_name":"Catizen",'
+        '"executive_summary":"تقرير عربي مفصل عن المخاطر الشرعية للمشروع '
+        'والحوكمة والرموز الرقمية والمعاملات المالية المحتملة",'
+        '"key_findings":["لا توجد شفافية كافية حول مصادر العائد والرسوم"]}'
+    )
+    audit.pdf_filename = "catizen-stale-english.pdf"
+    cached_path = history.storage_dir() / audit.pdf_filename
+    cached_path.write_bytes(b"%PDF-legacy-Helvetica-only")
+    db.commit()
+
+    rendered = b"%PDF-IBMPlexSansArabic-MizaanArabicPDF-v2"
+    calls = []
+
+    def fake_build(*args, **kwargs):
+        calls.append(kwargs)
+        return rendered
+
+    monkeypatch.setattr(history, "build_audit_pdf", fake_build)
+
+    response = client.get(f"/api/history/{audit.id}/pdf", headers=_auth(alice))
+
+    assert response.status_code == 200
+    assert response.content == rendered
+    assert calls[0]["language"] == "ar"
+    assert cached_path.read_bytes() == rendered
+
+
 def test_traversal_filename_is_not_read_from_disk(client, db):
     alice = _make_user(db, "alice@example.com")
     audit = _make_audit(db, alice)
