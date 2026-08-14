@@ -20,10 +20,9 @@ things that Latin scripts do not:
 
 :class:`RtlParagraph` satisfies (3) by wrapping the text itself in logical
 order at the width it is given, then shaping each resulting line for display.
-
-Both Arabic dependencies are optional at runtime: if they are unavailable the
-text still renders with the correct font and content, only unshaped, rather
-than failing the whole download.
+The shaping dependencies are optional at runtime: if they are unavailable the
+text still renders with the bundled Arabic font, only unshaped. The font itself
+is required; rendering fails instead of silently producing unreadable boxes.
 """
 
 from __future__ import annotations
@@ -489,8 +488,9 @@ _arabic_fonts_ready: Optional[bool] = None
 def register_rtl_fonts() -> bool:
     """Registers the bundled Arabic family once per process.
 
-    Returns ``False`` (and logs) when the font files are missing so callers can
-    degrade to Helvetica instead of failing the download outright.
+    Returns ``False`` (and logs) when the font files are missing or unreadable.
+    Arabic callers must treat that as fatal because ReportLab's built-in fonts
+    cannot represent Arabic and would silently render replacement blocks.
     """
     global _arabic_fonts_ready
 
@@ -520,8 +520,8 @@ def register_rtl_fonts() -> bool:
             _arabic_fonts_ready = True
         except Exception:
             logger.exception(
-                "Arabic font registration failed - falling back to Helvetica, "
-                "which cannot render Arabic glyphs."
+                "Arabic font registration failed for bundled font directory %s",
+                FONT_DIR,
             )
             _arabic_fonts_ready = False
 
@@ -665,7 +665,12 @@ class Localizer:
         self.language = normalize_language(language)
         self.is_rtl = self.language in RTL_LANGUAGES
 
-        if self.is_rtl and register_rtl_fonts():
+        if self.is_rtl:
+            if not register_rtl_fonts():
+                raise RuntimeError(
+                    "Arabic PDF fonts could not be registered from "
+                    f"{FONT_DIR}. Ensure the bundled TTF files are deployed."
+                )
             self.font = "MizaanArabic"
             self.font_bold = "MizaanArabic-Bold"
             self.font_italic = "MizaanArabic"

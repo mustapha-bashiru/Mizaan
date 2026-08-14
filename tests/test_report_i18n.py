@@ -11,8 +11,10 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from pathlib import Path
 
 import pytest
+import report_i18n
 
 from report_i18n import (
     DEFAULT_LANGUAGE,
@@ -119,6 +121,25 @@ def test_bundled_arabic_fonts_are_present():
     assert register_rtl_fonts() is True, "Arabic font files are missing from assets/"
 
 
+def test_arabic_font_paths_are_absolute_and_repository_relative():
+    expected = Path(report_i18n.__file__).resolve().parent / "assets" / "fonts"
+
+    assert report_i18n.FONT_DIR.is_absolute()
+    assert report_i18n.FONT_DIR == expected
+    for _, filename in report_i18n.ARABIC_FONT_FILES:
+        assert (report_i18n.FONT_DIR / filename).is_file()
+
+
+def test_arabic_render_fails_instead_of_falling_back_when_fonts_are_missing(
+    monkeypatch, tmp_path
+):
+    monkeypatch.setattr(report_i18n, "FONT_DIR", tmp_path / "missing-fonts")
+    monkeypatch.setattr(report_i18n, "_arabic_fonts_ready", None)
+
+    with pytest.raises(RuntimeError, match="Arabic PDF fonts could not be registered"):
+        Localizer("ar")
+
+
 # ---------------------------------------------------------------------------
 # Catalog completeness
 # ---------------------------------------------------------------------------
@@ -218,6 +239,7 @@ def test_arabic_pdf_contains_readable_arabic_text():
     pdf = build_audit_pdf(SAMPLE, language="ar")
     text = _extract(pdf)
 
+    assert b"IBMPlexSansArabic" in pdf, "bundled Arabic font was not embedded"
     assert contains_rtl(text), "no Arabic glyphs were embedded in the PDF"
 
     loc = Localizer("ar")
