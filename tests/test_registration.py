@@ -15,6 +15,7 @@ from sqlalchemy.orm import Query, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from database import Base, get_db
+import main as main_module
 from main import app
 from models import UserDB
 
@@ -238,3 +239,39 @@ def test_duplicate_signup_does_not_issue_a_new_otp(client, db_session):
 
     db_session.expire_all()
     assert db_session.query(UserDB).one().otp_hash == original_otp_hash
+
+
+# ---------------------------------------------------------------------------
+# OTP delivery and resend cooldown
+# ---------------------------------------------------------------------------
+def test_successful_delivery_starts_30_second_cooldown(client, db_session, monkeypatch):
+    monkeypatch.setattr(main_module, "send_otp_email", lambda *_: True)
+
+    response = register(client, "pat@example.com")
+
+    assert response.status_code == 201
+    assert response.json()["email_delivered"] is True
+    assert response.json()["retry_after_seconds"] == 30
+    db_session.expire_all()
+    assert db_session.query(UserDB).one().otp_last_sent_at is not None
+
+    resend = client.post("/api/resend-otp", json={"email": "pat@example.com"})
+    assert resend.status_code == 429
+    assert resend.json()["detail"]["retry_after_seconds"] == 30
+
+
+def test_failed_delivery_does_not_start_cooldown(client, db_session, monkeypatch):
+    monkeypatch.setattr(main_module, "send_otp_email", lambda *_: False)
+
+    response = register(client, "quinn@example.com")
+
+    assert response.status_code == 201
+    assert response.json()["email_delivered"] is False
+    assert response.json()["retry_after_seconds"] == 0
+    db_session.expire_all()
+    assert db_session.query(UserDB).one().otp_last_sent_at is None
+
+    resend = client.post("/api/resend-otp", json={"email": "quinn@example.com"})
+    assert resend.status_code == 200
+    assert resend.json()["email_delivered"] is False
+    assert resend.json()["retry_after_seconds"] == 0

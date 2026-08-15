@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApiError, authApi, emailStore, tokenStore } from '../api/client';
 import PasswordInput from './PasswordInput';
@@ -14,9 +14,18 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
   // Set when the backend rejects a signup with 409 so the modal can offer the
   // right next step (log in / reset password) instead of a red dead end.
   const [conflict, setConflict] = useState(null);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return undefined;
+    const timer = window.setInterval(() => {
+      setResendCooldown((seconds) => Math.max(0, seconds - 1));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [resendCooldown]);
 
   if (!isOpen) return null;
 
@@ -25,6 +34,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
     setError('');
     setNotice('');
     setConflict(null);
+    if (next !== 'verify') setResendCooldown(0);
   };
 
   const finishLogin = (accessToken) => {
@@ -49,11 +59,12 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
       } else if (mode === 'register') {
         const data = await authApi.register(email.trim(), password);
         switchMode('verify');
+        setResendCooldown(data?.retry_after_seconds || 0);
         setNotice(
           data?.email_delivered === false
             ? t(
                 'otp_console_notice',
-                'Email delivery is not configured on the server, so the code was logged to the backend console.',
+                'The verification email could not be delivered. Please try resending it.',
               )
             : t('otp_sent', 'We sent a 6-digit verification code to your inbox.'),
         );
@@ -99,14 +110,24 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
   };
 
   const handleResend = async () => {
+    if (loading || resendCooldown > 0) return;
     setLoading(true);
     setError('');
     setNotice('');
     setConflict(null);
     try {
-      await authApi.resendOtp(email.trim());
-      setNotice(t('otp_resent', 'If that account exists, a new code has been sent.'));
+      const data = await authApi.resendOtp(email.trim());
+      setResendCooldown(data?.retry_after_seconds || 0);
+      setNotice(
+        data?.email_delivered === false
+          ? t('otp_delivery_failed', 'The verification email could not be delivered. Please try again.')
+          : t('otp_resent', 'If that account exists, a new code has been sent.'),
+      );
     } catch (err) {
+      const retryAfter = err instanceof ApiError
+        ? Number(err.detail?.retry_after_seconds || 0)
+        : 0;
+      if (retryAfter > 0) setResendCooldown(retryAfter);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -202,10 +223,12 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
               <button
                 type="button"
                 onClick={handleResend}
-                disabled={loading}
+                disabled={loading || resendCooldown > 0}
                 className="mt-2 text-xs text-emerald-600 dark:text-emerald-400 hover:underline disabled:opacity-50"
               >
-                {t('resend_code', 'Resend code')}
+                {resendCooldown > 0
+                  ? t('resend_code_in', 'Resend code in {{seconds}}s', { seconds: resendCooldown })
+                  : t('resend_code', 'Resend code')}
               </button>
             </div>
           ) : (

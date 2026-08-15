@@ -310,7 +310,9 @@ def consume_audit_credit(user: UserDB, db: Session) -> None:
 # ---------------------------------------------------------------------------
 # OTP throttling
 # ---------------------------------------------------------------------------
-def otp_resend_allowed(user: UserDB, cooldown_seconds: int = 60) -> bool:
+def otp_resend_allowed(user: UserDB, cooldown_seconds: Optional[int] = None) -> bool:
+    if cooldown_seconds is None:
+        cooldown_seconds = settings.otp_resend_cooldown_seconds
     if not user.otp_last_sent_at:
         return True
     return utcnow() - user.otp_last_sent_at >= timedelta(seconds=cooldown_seconds)

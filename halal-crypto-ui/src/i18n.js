@@ -606,8 +606,11 @@ const resources = {
       otp_sent_to: "Saisissez le code à 6 chiffres envoyé à",
       otp_resent: "Si ce compte existe, un nouveau code a été envoyé.",
       otp_console_notice:
-        "L'envoi d'e-mails n'est pas configuré sur le serveur ; le code a donc été enregistré dans la console du backend.",
+        "L'e-mail de vérification n'a pas pu être envoyé. Veuillez réessayer.",
+      otp_delivery_failed:
+        "L'e-mail de vérification n'a pas pu être envoyé. Veuillez réessayer.",
       resend_code: "Renvoyer le code",
+      resend_code_in: "Renvoyer le code dans {{seconds}} s",
       invalid_email: "Veuillez saisir une adresse e-mail valide",
       passwords_mismatch: "Les mots de passe ne correspondent pas",
       profile_updated: "Profil mis à jour avec succès !",
@@ -1166,8 +1169,11 @@ const resources = {
       otp_sent_to: "أدخل الرمز المكون من 6 أرقام المرسل إلى",
       otp_resent: "إذا كان الحساب موجوداً، فقد تم إرسال رمز جديد.",
       otp_console_notice:
-        "إرسال البريد الإلكتروني غير مهيأ على الخادم، لذا تم تسجيل الرمز في وحدة تحكم الخادم.",
+        "تعذر إرسال رسالة التحقق. يرجى المحاولة مرة أخرى.",
+      otp_delivery_failed:
+        "تعذر إرسال رسالة التحقق. يرجى المحاولة مرة أخرى.",
       resend_code: "إعادة إرسال الرمز",
+      resend_code_in: "إعادة إرسال الرمز خلال {{seconds}} ث",
       invalid_email: "يرجى إدخال بريد إلكتروني صالح",
       passwords_mismatch: "كلمتا المرور غير متطابقتين",
       profile_updated: "تم تحديث الملف الشخصي بنجاح!",

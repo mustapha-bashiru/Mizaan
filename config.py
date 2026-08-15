@@ -89,6 +89,9 @@ class Settings:
         self.smtp_sender_email: str = os.getenv("SMTP_SENDER_EMAIL", "")
         self.smtp_sender_password: str = os.getenv("SMTP_SENDER_PASSWORD", "")
         self.otp_ttl_minutes: int = _get_int("OTP_TTL_MINUTES", 10)
+        self.otp_resend_cooldown_seconds: int = _get_int(
+            "OTP_RESEND_COOLDOWN_SECONDS", 30
+        )
         self.otp_max_attempts: int = _get_int("OTP_MAX_ATTEMPTS", 5)
         self.log_otp_to_console: bool = _get_bool("LOG_OTP_TO_CONSOLE", True)
 

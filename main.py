@@ -115,12 +115,6 @@ app.include_router(history_router)
 app.include_router(public_reports_router)
 app.include_router(password_reset_router)
 
-# Serve frontend static files from dist/ (React build output)
-dist_path = Path(__file__).parent / "halal-crypto-ui" / "dist"
-if dist_path.exists():
-    app.mount("/", StaticFiles(directory=str(dist_path), html=True), name="static")
-
-
 # ---------------------------------------------------------------------------
 # Schemas
 # ---------------------------------------------------------------------------
@@ -144,7 +138,6 @@ def _issue_otp(user: UserDB) -> str:
     user.otp_hash = hash_otp(otp)
     user.otp_expires_at = utcnow() + timedelta(minutes=settings.otp_ttl_minutes)
     user.otp_attempts = 0
-    user.otp_last_sent_at = utcnow()
     return otp
 
 
@@ -182,7 +175,7 @@ def _duplicate_email_conflict(existing: UserDB) -> HTTPException:
 # ---------------------------------------------------------------------------
 # Health
 # ---------------------------------------------------------------------------
-@app.get("/")
+@app.get("/api/health")
 def read_root():
     return {
         "status": "online",
@@ -230,10 +223,16 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
         ) from None
 
     delivered = send_otp_email(email, otp)
+    if delivered:
+        user.otp_last_sent_at = utcnow()
+        db.commit()
 
     return {
         "message": "Verification code sent. Please check your inbox.",
         "email": email,
+        "retry_after_seconds": (
+            settings.otp_resend_cooldown_seconds if delivered else 0
+        ),
         "email_delivered": delivered,
     }
 
@@ -244,7 +243,8 @@ def resend_otp(payload: ResendOTPRequest, db: Session = Depends(get_db)):
     user = db.query(UserDB).filter(UserDB.email == email).first()
 
     # Generic response: never reveal whether an account exists.
-    generic = {"message": "If that account exists, a new code has been sent."}
+    generic_message = "If that account exists, a new code has been sent."
+    generic = {"message": generic_message}
 
     if not user or user.is_verified:
         return generic
@@ -252,13 +252,26 @@ def resend_otp(payload: ResendOTPRequest, db: Session = Depends(get_db)):
     if not otp_resend_allowed(user):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Please wait a moment before requesting another code.",
+            detail={
+                "code": "otp_resend_cooldown",
+                "message": "Please wait before requesting another verification code.",
+                "retry_after_seconds": settings.otp_resend_cooldown_seconds,
+            },
         )
 
     otp = _issue_otp(user)
     db.commit()
-    send_otp_email(email, otp)
-    return generic
+    delivered = send_otp_email(email, otp)
+    if delivered:
+        user.otp_last_sent_at = utcnow()
+        db.commit()
+    return {
+        "message": generic_message,
+        "email_delivered": delivered,
+        "retry_after_seconds": (
+            settings.otp_resend_cooldown_seconds if delivered else 0
+        ),
+    }
 
 
 @app.post("/api/verify-otp", response_model=Token)
@@ -450,6 +463,14 @@ def scholar_chat(
         )
 
     return {"reply": outcome.reply}
+
+
+# The catch-all SPA mount must be registered after every API route. Starlette
+# matches routes in declaration order, so mounting it earlier shadows POST
+# endpoints such as /api/register and returns 405 before FastAPI sees them.
+dist_path = Path(__file__).parent / "halal-crypto-ui" / "dist"
+if dist_path.exists():
+    app.mount("/", StaticFiles(directory=str(dist_path), html=True), name="static")
 
 
 if __name__ == "__main__":
