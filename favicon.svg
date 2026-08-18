@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Mizaan">
+  <title>Mizaan</title>
+  <!--
+    Favicon variant. Deliberately simplified and drawn on a solid rounded tile:
+    at 16px the open-stroke lockup loses legibility, so the mark is reduced to
+    the beam, pillar, pans and gold node with heavier strokes and higher
+    contrast. The dark tile keeps it visible on both light and dark browser
+    chrome.
+  -->
+  <defs>
+    <linearGradient id="faviconTile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#065F46" />
+      <stop offset="100%" stop-color="#0F766E" />
+    </linearGradient>
+  </defs>
+
+  <rect width="64" height="64" rx="14" fill="url(#faviconTile)" />
+
+  <g fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M15 26H49" />
+    <path d="M32 26V45" />
+    <path d="M23 46H41" />
+    <path d="M10 30q6 8 12 0" />
+    <path d="M42 30q6 8 12 0" />
+  </g>
+
+  <circle cx="32" cy="19" r="5" fill="#F59E0B" />
+</svg>
