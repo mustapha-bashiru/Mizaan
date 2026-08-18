@@ -205,16 +205,37 @@ def send_otp_email(to_email: str, otp: str) -> bool:
 
     try:
         context = ssl.create_default_context()
-        with smtplib.SMTP_SSL(
-            settings.smtp_host, settings.smtp_port, context=context, timeout=10
-        ) as server:
-            server.login(settings.smtp_sender_email, settings.smtp_sender_password)
-            server.sendmail(
-                settings.smtp_sender_email, to_email, message.as_string()
-            )
+        if settings.smtp_port == 465:
+            # Port 465 negotiates TLS before SMTP commands are exchanged.
+            with smtplib.SMTP_SSL(
+                settings.smtp_host, settings.smtp_port, context=context, timeout=10
+            ) as server:
+                server.login(settings.smtp_sender_email, settings.smtp_sender_password)
+                server.sendmail(
+                    settings.smtp_sender_email, to_email, message.as_string()
+                )
+        else:
+            # Port 587 (and most non-Gmail submission ports) use STARTTLS.
+            with smtplib.SMTP(
+                settings.smtp_host, settings.smtp_port, timeout=10
+            ) as server:
+                server.ehlo()
+                server.starttls(context=context)
+                server.ehlo()
+                server.login(settings.smtp_sender_email, settings.smtp_sender_password)
+                server.sendmail(
+                    settings.smtp_sender_email, to_email, message.as_string()
+                )
         return True
     except Exception as exc:
-        logger.error("Failed to dispatch verification email: %s", exc)
+        logger.error(
+            "Failed to dispatch verification email via %s:%s to %s (%s): %s",
+            settings.smtp_host,
+            settings.smtp_port,
+            to_email,
+            type(exc).__name__,
+            exc,
+        )
         return False
 
 
@@ -254,14 +275,31 @@ def send_password_reset_email(to_email: str, token: str) -> bool:
 
     try:
         context = ssl.create_default_context()
-        with smtplib.SMTP_SSL(
-            settings.smtp_host, settings.smtp_port, context=context, timeout=10
-        ) as server:
-            server.login(settings.smtp_sender_email, settings.smtp_sender_password)
-            server.sendmail(settings.smtp_sender_email, to_email, message.as_string())
+        if settings.smtp_port == 465:
+            with smtplib.SMTP_SSL(
+                settings.smtp_host, settings.smtp_port, context=context, timeout=10
+            ) as server:
+                server.login(settings.smtp_sender_email, settings.smtp_sender_password)
+                server.sendmail(settings.smtp_sender_email, to_email, message.as_string())
+        else:
+            with smtplib.SMTP(
+                settings.smtp_host, settings.smtp_port, timeout=10
+            ) as server:
+                server.ehlo()
+                server.starttls(context=context)
+                server.ehlo()
+                server.login(settings.smtp_sender_email, settings.smtp_sender_password)
+                server.sendmail(settings.smtp_sender_email, to_email, message.as_string())
         return True
     except Exception as exc:
-        logger.error("Failed to dispatch password reset email: %s", exc)
+        logger.error(
+            "Failed to dispatch password reset email via %s:%s to %s (%s): %s",
+            settings.smtp_host,
+            settings.smtp_port,
+            to_email,
+            type(exc).__name__,
+            exc,
+        )
         return False
 
 

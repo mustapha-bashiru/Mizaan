@@ -151,6 +151,19 @@ class Settings:
                 "be emailed (they are logged to the console in development)."
             )
 
+        if self.smtp_port not in {465, 587}:
+            problems.append(
+                "SMTP_PORT should normally be 465 (implicit TLS) or 587 (STARTTLS)."
+            )
+
+        if self.smtp_host == "smtp.gmail.com" and self.smtp_sender_password:
+            compact_password = self.smtp_sender_password.replace(" ", "")
+            if len(compact_password) != 16:
+                problems.append(
+                    "Gmail SMTP requires a 16-character App Password, not the "
+                    "normal Google account password."
+                )
+
         return problems
 
 
